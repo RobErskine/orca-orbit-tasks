@@ -398,8 +398,8 @@ function Badges({ item, started }: { item: TaskItem; started: boolean }): OrcaNo
     <Row gap="xs" wrap>
       {item.status ? <Badge tone={toneOf(item.status.tone)}>{item.status.label}</Badge> : null}
       {item.priority ? <Badge tone={priorityTone(item.priority)}>{item.priority}</Badge> : null}
-      {(item.labels ?? []).map((label) => (
-        <Badge key={label}>{label}</Badge>
+      {(item.labels ?? []).map((label, index) => (
+        <Badge key={`${index}:${label}`}>{label}</Badge>
       ))}
       {started ? <Badge tone="accent">Workspace started</Badge> : null}
     </Row>

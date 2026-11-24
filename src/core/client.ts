@@ -42,7 +42,12 @@ export type FetchResponse = {
 }
 export type FetchLike = (
   url: string,
-  init: { method: string; headers: Record<string, string>; signal?: AbortSignal }
+  init: {
+    method: string
+    headers: Record<string, string>
+    redirect: 'manual'
+    signal?: AbortSignal
+  }
 ) => Promise<FetchResponse>
 
 export type QueryParams = Record<string, string | number | undefined>
@@ -153,6 +158,9 @@ export class OrbitClient {
         response = await this.#send(url.toString(), signal)
       }
     }
+    if (response.status >= 300 && response.status < 400) {
+      throw new OrbitError('bad_response', this.#redirected(response), response.status)
+    }
     const text = await response.text()
     const body = parseJson(text)
     if (response.status >= 200 && response.status < 300) {
@@ -212,6 +220,9 @@ export class OrbitClient {
       return await this.#fetch(url, {
         method: 'GET',
         headers: { Accept: 'application/json', Authorization: `Bearer ${this.#token}` },
+        // A redirect is reported, not followed: following one to another origin drops the
+        // token, and Orbit would then seem to refuse it.
+        redirect: 'manual',
         signal: controller.signal
       })
     } catch (error) {
@@ -230,6 +241,22 @@ export class OrbitClient {
       clearTimeout(timer)
       signal?.removeEventListener('abort', onAbort)
     }
+  }
+
+  #redirected(response: FetchResponse): string {
+    const host = hostOf(this.baseUrl)
+    let target: string | undefined
+    try {
+      // Only a redirect that keeps the API path names another address of the same Orbit.
+      const location = new URL(response.headers.get('location') ?? '', this.baseUrl)
+      const at = location.pathname.indexOf(API_PATH)
+      if (at >= 0) target = `${location.origin}${location.pathname.slice(0, at).replace(/\/+$/, '')}`
+    } catch {
+      target = undefined
+    }
+    return target && target !== this.baseUrl
+      ? `${host} redirects to ${target}. Use that address as the Orbit URL.`
+      : `${host} answered with a redirect, not like an Orbit API. Check the Orbit URL.`
   }
 
   #failure(response: FetchResponse, problem: Problem): OrbitError {

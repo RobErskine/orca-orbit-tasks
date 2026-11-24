@@ -77,6 +77,22 @@ test('says so when the URL is not an Orbit API', async () => {
   assert.equal((await failureOf(clientFor(orbit).me())).kind, 'bad_response')
 })
 
+test('reports a redirect with the address to use, and does not follow it', async () => {
+  const orbit = fakeOrbit()
+  orbit.next.push({
+    status: 301,
+    raw: '',
+    headers: { Location: 'https://orbit.example.com/api/public/v1/me' }
+  })
+  const moved = await failureOf(clientFor(orbit).me())
+  assert.equal(moved.kind, 'bad_response')
+  assert.equal(moved.message, 'orbit.test redirects to https://orbit.example.com. Use that address as the Orbit URL.')
+  assert.deepEqual(orbit.requests, ['/me'])
+
+  orbit.next.push({ status: 302, raw: '', headers: { Location: '/login' } })
+  assert.match((await failureOf(clientFor(orbit).me())).message, /answered with a redirect/)
+})
+
 test('waits as Retry-After says and retries once', async () => {
   const orbit = fakeOrbit()
   const waits: number[] = []
