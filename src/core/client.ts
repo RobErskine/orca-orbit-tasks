@@ -176,17 +176,21 @@ export class OrbitClient {
     }))
   }
 
-  /** Every item of a cursor list, up to `maxPages` pages of 100. */
+  /**
+   * Every item of a list, up to `maxPages` pages. Orbit refuses a query parameter that a route
+   * does not declare (400), so `limit` is sent only with a `pageSize`: give one for the routes
+   * that take `cursor` and `limit`, and none for those that answer on one page.
+   */
   async all<T>(
     path: string,
     params: QueryParams = {},
     signal?: AbortSignal,
-    maxPages = 10
+    options: { pageSize?: number; maxPages?: number } = {}
   ): Promise<T[]> {
     const items: T[] = []
     let cursor: string | undefined
-    for (let pageNumber = 0; pageNumber < maxPages; pageNumber += 1) {
-      const page = await this.page<T>(path, { ...params, limit: 100, cursor }, signal)
+    for (let pageNumber = 0; pageNumber < (options.maxPages ?? 10); pageNumber += 1) {
+      const page = await this.page<T>(path, { ...params, limit: options.pageSize, cursor }, signal)
       items.push(...page.items)
       if (!page.next_cursor) break
       cursor = page.next_cursor

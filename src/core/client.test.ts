@@ -135,6 +135,12 @@ test('follows cursors and leaves unset parameters out', async () => {
   assert.equal(first.items.length, 2)
   assert.equal(first.next_cursor, '2')
   assert.deepEqual(orbit.requests, ['/workspaces/ws-1/tasks?limit=2'])
-  const all = await client.all('/workspaces/ws-1/tasks')
+  const all = await client.all('/workspaces/ws-1/tasks', {}, undefined, { pageSize: 2 })
   assert.equal(all.length, 5)
+  // No `limit` without a page size: Orbit refuses parameters a route does not declare.
+  await client.all('/workspaces/ws-1/projects')
+  assert.equal(orbit.requests.at(-1), '/workspaces/ws-1/projects')
+  const refused = await failureOf(client.get('/workspaces/ws-1/projects', { limit: 100 }))
+  assert.equal(refused.status, 400)
+  assert.equal(refused.code, 'invalid_request')
 })

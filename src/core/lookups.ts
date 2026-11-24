@@ -5,6 +5,8 @@ import { OrbitError, type OrbitClient } from './client'
 import type { OrbitLabel, OrbitMember, OrbitProject, OrbitStatus, OrbitView } from './types'
 
 const TTL_MS = 5 * 60_000
+/** For the routes that take `cursor` and `limit`; projects and views answer on one page. */
+const PAGED = { pageSize: 100 }
 
 type Entry<T> = { at: number; value: Promise<T> }
 
@@ -54,7 +56,7 @@ export class Lookups {
   /** User id to display name. */
   members(signal?: AbortSignal): Promise<Map<string, string>> {
     return this.#cached('members', async () => {
-      const members = await this.#client.all<OrbitMember>(this.path('/members'), {}, signal)
+      const members = await this.#client.all<OrbitMember>(this.path('/members'), {}, signal, PAGED)
       return new Map(members.map((member) => [member.user_id, member.display_name]))
     })
   }
@@ -65,7 +67,8 @@ export class Lookups {
       const statuses = await this.#client.all<OrbitStatus>(
         this.path(`/projects/${encodeURIComponent(projectId)}/statuses`),
         {},
-        signal
+        signal,
+        PAGED
       )
       return statuses.sort((a, b) => a.position - b.position)
     })
@@ -77,7 +80,8 @@ export class Lookups {
       const labels = await this.#client.all<OrbitLabel>(
         this.path(`/projects/${encodeURIComponent(projectId)}/labels`),
         {},
-        signal
+        signal,
+        PAGED
       )
       return new Map(labels.map((label) => [label.id, label.name]))
     })

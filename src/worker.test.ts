@@ -140,7 +140,7 @@ test('lists and gets tasks with the settings applied', async () => {
   // The session is reused: /me was asked once for all three requests.
   await worker.request('tasks.list', { query: 'login', filters: {}, refresh: true })
   assert.equal(orbit.requests.filter((request) => request === '/me').length, 1)
-  assert.equal(orbit.requests.filter((request) => request.startsWith('/workspaces/ws-1/projects?')).length, 2)
+  assert.equal(orbit.requests.filter((request) => request === '/workspaces/ws-1/projects').length, 2)
   assert.deepEqual(worker.refusals, [])
   await worker.deactivate()
 })
@@ -291,7 +291,9 @@ test('forgets a workspace when Orca removes it', async () => {
 })
 
 test('declares the same defaults as the manifest', async () => {
-  const { readFileSync } = await import('node:fs')
+  // Typed here because the plugin has no Node typings: tests run in Node all the same.
+  const fs = 'node:fs'
+  const { readFileSync } = (await import(fs)) as { readFileSync(path: URL, encoding: 'utf8'): string }
   const manifest = JSON.parse(readFileSync(new URL('../orca-plugin.json', import.meta.url), 'utf8')) as {
     contributes: { settings: { key: string; default?: unknown; enum?: string[] }[] }
   }

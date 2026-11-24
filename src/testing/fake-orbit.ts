@@ -172,6 +172,33 @@ function response(status: number, body: unknown, headers: Record<string, string>
   }
 }
 
+const PAGE_PARAMS = ['cursor', 'limit']
+const TASK_PARAMS = [
+  'project_id',
+  'status_id',
+  'assignee_id',
+  'sort',
+  'order',
+  'label_id',
+  'priority',
+  'milestone_id',
+  'cycle_id',
+  'due_before',
+  'due_after',
+  'has_due_date',
+  'parent_task_id',
+  'q',
+  'view_id',
+  ...PAGE_PARAMS
+]
+
+/** The query parameters Orbit's OpenAPI document declares for a workspace route. */
+function allowedParams(route: string): string[] {
+  if (route === '/tasks') return TASK_PARAMS
+  if (route === '/members' || /\/(statuses|labels|comments)$/.test(route)) return PAGE_PARAMS
+  return []
+}
+
 export function problem(status: number, code: string, detail = 'Problem detail.'): unknown {
   return { type: `https://docs.orbit.dev/problems/${code}`, title: code, status, code, detail }
 }
@@ -230,6 +257,10 @@ export function fakeOrbit(overrides: Partial<FakeOrbitData> = {}): FakeOrbit {
     if (!path.startsWith(base)) return response(404, problem(404, 'not_found'))
     const rest = path.slice(base.length)
     const query = url.searchParams
+    // As Orbit does: a query parameter the route does not declare is refused.
+    const declared = allowedParams(rest)
+    const unknown = [...query.keys()].find((key) => !declared.includes(key))
+    if (unknown) return response(400, problem(400, 'invalid_request', `unknown field \`${unknown}\``))
     if (rest === '/projects') return response(200, page(projects, query))
     if (rest === '/members') return response(200, page(members, query))
     if (rest === '/views') {

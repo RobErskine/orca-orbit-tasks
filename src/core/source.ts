@@ -246,7 +246,9 @@ export class OrbitTaskSource {
         )
       ),
       optional(this.#client.page<OrbitRelation>(`${taskPath}/relations`, {}, signal)),
-      optional(this.#client.all<OrbitComment>(`${taskPath}/comments`, {}, signal, 3))
+      optional(
+        this.#client.all<OrbitComment>(`${taskPath}/comments`, {}, signal, { pageSize: 100, maxPages: 3 })
+      )
     ])
 
     const sections: string[] = []
@@ -300,7 +302,8 @@ export class OrbitTaskSource {
 
   #query(selection: Selection, text: string): QueryParams {
     const query: QueryParams = {}
-    const q = text.trim()
+    // Orbit takes up to 500 characters of search text.
+    const q = text.trim().slice(0, 500)
     if (q) query.q = q
     if (selection.view === BUILT_IN_VIEW) {
       query.sort = 'updated_at'

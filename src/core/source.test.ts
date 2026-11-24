@@ -193,7 +193,7 @@ test('asks for each lookup once', async () => {
   await source.list()
   await source.list({ filters: { assignee: 'all' } })
   const count = (path: string): number => orbit.requests.filter((request) => request.startsWith(path)).length
-  assert.equal(count('/workspaces/ws-1/projects?'), 1)
+  assert.equal(orbit.requests.filter((request) => request === '/workspaces/ws-1/projects').length, 1)
   assert.equal(count('/workspaces/ws-1/views'), 1)
   assert.equal(count('/workspaces/ws-1/members'), 1)
   assert.equal(count('/workspaces/ws-1/projects/project-eng/statuses'), 1)
