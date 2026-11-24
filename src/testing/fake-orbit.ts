@@ -259,7 +259,9 @@ export function fakeOrbit(overrides: Partial<FakeOrbitData> = {}): FakeOrbit {
     const query = url.searchParams
     // As Orbit does: a query parameter the route does not declare is refused.
     const declared = allowedParams(rest)
-    const unknown = [...query.keys()].find((key) => !declared.includes(key))
+    const asked: string[] = []
+    query.forEach((_value, key) => asked.push(key))
+    const unknown = asked.find((key) => !declared.includes(key))
     if (unknown) return response(400, problem(400, 'invalid_request', `unknown field \`${unknown}\``))
     if (rest === '/projects') return response(200, page(projects, query))
     if (rest === '/members') return response(200, page(members, query))
